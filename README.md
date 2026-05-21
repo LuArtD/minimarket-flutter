@@ -4,15 +4,13 @@ Aplicación de gestión de inventario y ventas para minimarket con método FIFO,
 
 ## Capturas
 
-> Las capturas deben ubicarse en `docs/screenshots/`. Ejemplo de referencia:
->
-> | Pantalla | Vista |
-> |---|---|
-> | Dashboard | `docs/screenshots/dashboard.png` |
-> | Productos | `docs/screenshots/productos.png` |
-> | Ventas | `docs/screenshots/ventas.png` |
-> | Compras | `docs/screenshots/compras.png` |
-> | Reportes | `docs/screenshots/reportes.png` |
+| Pantalla | Vista |
+|---|---|
+| Dashboard | ![](docs/screenshots/dashboard.jpg) |
+| Productos | ![](docs/screenshots/productos.jpg) |
+| Ventas | ![](docs/screenshots/ventas.jpg) |
+| Compras | ![](docs/screenshots/compras.jpg) |
+| Reportes | ![](docs/screenshots/reportes.jpg) |
 
 ## Funcionalidades
 
