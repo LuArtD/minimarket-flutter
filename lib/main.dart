@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'src/database/app_database.dart';
@@ -35,6 +37,35 @@ class MainApp extends ConsumerWidget {
       darkTheme: dark,
       themeMode: ThemeMode.system,
       routerConfig: router,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('es'),
+        Locale('en'),
+      ],
+      locale: const Locale('es'),
+      builder: (context, child) {
+        final brightness = Theme.of(context).brightness;
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: brightness == Brightness.light
+              ? SystemUiOverlayStyle(
+                  systemNavigationBarColor: Theme.of(context).scaffoldBackgroundColor,
+                  systemNavigationBarIconBrightness: Brightness.dark,
+                  statusBarColor: Colors.transparent,
+                  statusBarIconBrightness: Brightness.dark,
+                )
+              : SystemUiOverlayStyle(
+                  systemNavigationBarColor: Theme.of(context).scaffoldBackgroundColor,
+                  systemNavigationBarIconBrightness: Brightness.light,
+                  statusBarColor: Colors.transparent,
+                  statusBarIconBrightness: Brightness.light,
+                ),
+          child: child!,
+        );
+      },
     );
   }
 }
