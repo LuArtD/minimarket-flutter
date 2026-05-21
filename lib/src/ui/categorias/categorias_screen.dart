@@ -7,6 +7,7 @@ import '../../theme/spacing.dart';
 import '../shared/dialogs/confirm_dialog.dart';
 import '../shared/widgets/empty_state.dart';
 import '../shared/widgets/error_banner.dart';
+import '../shared/widgets/shimmer_loading.dart';
 
 class CategoriasScreen extends ConsumerWidget {
   const CategoriasScreen({super.key});
@@ -57,7 +58,7 @@ class CategoriasScreen extends ConsumerWidget {
                     children: [
                       if (cat.activa == 0)
                         IconButton(
-                          icon: const Icon(Icons.restore, color: Colors.green),
+                          icon: Icon(Icons.restore, color: Theme.of(context).colorScheme.tertiary),
                           onPressed: () => repo.toggleActive(cat.id, true),
                         ),
                       PopupMenuButton<String>(
@@ -95,8 +96,8 @@ class CategoriasScreen extends ConsumerWidget {
             },
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        loading: () => const ShimmerList(),
+        error: (e, _) => ErrorBanner(message: 'Error: $e', onRetry: () => ref.invalidate(categoriasStreamProvider)),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showForm(context, ref),
@@ -108,15 +109,16 @@ class CategoriasScreen extends ConsumerWidget {
   void _showForm(BuildContext context, WidgetRef ref, {Categoria? categoria}) {
     showDialog(
       context: context,
-      builder: (dialogContext) => _CategoriaFormDialog(categoria: categoria),
+      builder: (dialogContext) => _CategoriaFormDialog(categoria: categoria, ref: ref),
     );
   }
 }
 
 class _CategoriaFormDialog extends StatefulWidget {
   final Categoria? categoria;
+  final WidgetRef ref;
 
-  const _CategoriaFormDialog({this.categoria});
+  const _CategoriaFormDialog({this.categoria, required this.ref});
 
   @override
   State<_CategoriaFormDialog> createState() => _CategoriaFormDialogState();
@@ -173,7 +175,7 @@ class _CategoriaFormDialogState extends State<_CategoriaFormDialog> {
         FilledButton(
           onPressed: () async {
             if (!_formKey.currentState!.validate()) return;
-            final repo = ProviderScope.containerOf(context, listen: false).read(categoriasRepositoryProvider);
+            final repo = widget.ref.read(categoriasRepositoryProvider);
             final result = isEdit
                 ? await repo.update(
                     id: widget.categoria!.id,

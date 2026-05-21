@@ -7,6 +7,8 @@ import '../../providers/database_provider.dart';
 import '../../theme/formatters.dart';
 import '../../theme/spacing.dart';
 import '../shared/widgets/empty_state.dart';
+import '../shared/widgets/error_banner.dart';
+import '../shared/widgets/shimmer_loading.dart';
 
 class VentasScreen extends ConsumerWidget {
   const VentasScreen({super.key});
@@ -66,7 +68,7 @@ class VentasScreen extends ConsumerWidget {
                         onTap: () => context.push('/ventas/${venta.id}'),
                         leading: CircleAvatar(backgroundColor: Theme.of(context).colorScheme.primaryContainer, child: Icon(Icons.receipt, color: Theme.of(context).colorScheme.onPrimaryContainer)),
                         title: Text(AppFormatters.formatCurrency(venta.total)),
-                        subtitle: Text('${venta.metodoPago.toUpperCase()} · ${_formatFecha(venta.fecha)}'),
+                        subtitle: Text('${venta.metodoPago.toUpperCase()} · ${AppFormatters.formatDateTimeShort(venta.fecha)}'),
                         trailing: Column(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.end,
@@ -80,8 +82,8 @@ class VentasScreen extends ConsumerWidget {
                   },
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
+              loading: () => const ShimmerList(),
+              error: (e, _) => ErrorBanner(message: 'Error: $e', onRetry: () => ref.invalidate(ventasStreamProvider)),
             ),
           ),
         ],
@@ -89,8 +91,4 @@ class VentasScreen extends ConsumerWidget {
     );
   }
 
-  static String _formatFecha(String fecha) {
-    if (fecha.length >= 16) return fecha.substring(0, 16);
-    return fecha;
-  }
 }

@@ -8,6 +8,7 @@ import '../../theme/formatters.dart';
 import '../../theme/spacing.dart';
 import '../shared/widgets/currency_text.dart';
 import '../shared/widgets/empty_state.dart';
+import '../shared/widgets/shimmer_loading.dart';
 
 class VentaDetalleScreen extends ConsumerWidget {
   final int ventaId;
@@ -27,10 +28,10 @@ class VentaDetalleScreen extends ConsumerWidget {
         builder: (context, snapshot) {
           final venta = snapshot.data;
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Padding(padding: EdgeInsets.all(16), child: ShimmerCard(height: 400));
           }
           if (venta == null) {
-            return const Center(child: Text('Venta no encontrada'));
+            return const EmptyState(icon: Icons.receipt_long_outlined, title: 'Venta no encontrada');
           }
 
           return StreamBuilder<List<VentaDetalleView>>(
@@ -121,9 +122,9 @@ class _HeaderCard extends StatelessWidget {
             _row('Total', AppFormatters.formatCurrency(venta.total), theme, bold: true),
             _row('Costo total', AppFormatters.formatCurrency(venta.costoTotal), theme),
             _row('Ganancia bruta', AppFormatters.formatCurrency(ganancia), theme,
-                color: ganancia >= 0 ? Colors.green : Colors.red, bold: true),
+                color: ganancia >= 0 ? theme.colorScheme.tertiary : theme.colorScheme.error, bold: true),
             _row('Margen', '${margen.toStringAsFixed(1)}%', theme,
-                color: margen >= 0 ? Colors.green : Colors.red),
+                color: margen >= 0 ? theme.colorScheme.tertiary : theme.colorScheme.error),
           ],
         ),
       ),
@@ -199,7 +200,7 @@ class _ProductosCard extends StatelessWidget {
               CurrencyText(d.subtotal, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
               Text('Gan: ${AppFormatters.formatCurrency(d.ganancia)}',
                   style: theme.textTheme.labelSmall?.copyWith(
-                      color: d.ganancia >= 0 ? Colors.green : Colors.red)),
+                      color: d.ganancia >= 0 ? theme.colorScheme.tertiary : theme.colorScheme.error)),
             ],
           ),
         ],
@@ -230,8 +231,8 @@ class _TotalesCard extends StatelessWidget {
             _totalRow('Subtotal', venta.total, theme, bold: true),
             _totalRow('Costo', venta.costoTotal, theme),
             const Divider(height: 16),
-            _totalRow('Ganancia', ganancia, theme, color: ganancia >= 0 ? Colors.green : Colors.red, bold: true),
-            _totalRow('Margen', margen, theme, isPercentage: true, color: margen >= 0 ? Colors.green : Colors.red),
+            _totalRow('Ganancia', ganancia, theme, color: ganancia >= 0 ? theme.colorScheme.tertiary : theme.colorScheme.error, bold: true),
+            _totalRow('Margen', margen, theme, isPercentage: true, color: margen >= 0 ? theme.colorScheme.tertiary : theme.colorScheme.error),
           ],
         ),
       ),

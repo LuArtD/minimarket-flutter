@@ -11,6 +11,7 @@ import '../../theme/spacing.dart';
 import '../shared/dialogs/confirm_dialog.dart';
 import '../shared/widgets/empty_state.dart';
 import '../shared/widgets/error_banner.dart';
+import '../shared/widgets/shimmer_loading.dart';
 import '../shared/widgets/stock_badge.dart';
 
 class ProductosScreen extends ConsumerStatefulWidget {
@@ -67,7 +68,7 @@ class _ProductosScreenState extends ConsumerState<ProductosScreen> {
                       ),
                     );
                   },
-                  loading: () => const Expanded(child: Center(child: CircularProgressIndicator())),
+                  loading: () => const Expanded(child: Center(child: SizedBox(height: 40, child: ShimmerCard(height: 40)))),
                   error: (_, _) => const Expanded(child: SizedBox.shrink()),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -165,8 +166,8 @@ class _ProductosScreenState extends ConsumerState<ProductosScreen> {
                   },
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
+              loading: () => const ShimmerList(),
+              error: (e, _) => ErrorBanner(message: 'Error: $e', onRetry: () => ref.invalidate(productosStreamProvider)),
             ),
           ),
         ],

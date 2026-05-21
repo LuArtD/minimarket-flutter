@@ -236,3 +236,9 @@ Stream<List<TopVendido>> topMasVendidosStream(TopMasVendidosStreamRef ref) {
   return ref.watch(dashboardRepositoryProvider).watchTop10MasVendidos();
 }
 
+@riverpod
+Stream<List<DashboardEntry>> dashboardAyerStream(DashboardAyerStreamRef ref) {
+  ref.watch(stockUpdateCounterProvider);
+  return ref.watch(dashboardRepositoryProvider).watchDashboardAyer();
+}
+

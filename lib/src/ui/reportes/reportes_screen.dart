@@ -6,6 +6,8 @@ import '../../providers/database_provider.dart';
 import '../../theme/formatters.dart';
 import '../../theme/spacing.dart';
 import '../shared/widgets/empty_state.dart';
+import '../shared/widgets/error_banner.dart';
+import '../shared/widgets/shimmer_loading.dart';
 
 class ReportesScreen extends ConsumerStatefulWidget {
   const ReportesScreen({super.key});
@@ -60,8 +62,8 @@ class _DiarioTabStream extends ConsumerWidget {
     final asyncData = ref.watch(kpiDiarioStreamProvider);
     return asyncData.when(
       data: (data) => _DiarioTab(data: data),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      loading: () => const ShimmerCard(height: 300),
+      error: (e, _) => ErrorBanner(message: 'Error: $e', onRetry: () => ref.invalidate(kpiDiarioStreamProvider)),
     );
   }
 }
@@ -72,8 +74,8 @@ class _SemanalTabStream extends ConsumerWidget {
     final asyncData = ref.watch(kpiSemanalStreamProvider);
     return asyncData.when(
       data: (data) => _SemanalTab(data: data),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      loading: () => const ShimmerCard(height: 300),
+      error: (e, _) => ErrorBanner(message: 'Error: $e', onRetry: () => ref.invalidate(kpiSemanalStreamProvider)),
     );
   }
 }
@@ -84,8 +86,8 @@ class _MensualTabStream extends ConsumerWidget {
     final asyncData = ref.watch(kpiMensualStreamProvider);
     return asyncData.when(
       data: (data) => _MensualTab(data: data),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      loading: () => const ShimmerCard(height: 300),
+      error: (e, _) => ErrorBanner(message: 'Error: $e', onRetry: () => ref.invalidate(kpiMensualStreamProvider)),
     );
   }
 }
@@ -124,8 +126,8 @@ class _DiaSemanaSection extends ConsumerWidget {
           ],
         );
       },
-      loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
-      error: (e, _) => SizedBox(height: 200, child: Center(child: Text('Error: $e'))),
+      loading: () => const SizedBox(height: 200, child: ShimmerCard(height: 200)),
+      error: (e, _) => SizedBox(height: 200, child: ErrorBanner(message: 'Error: $e', onRetry: () => ref.invalidate(kpiDiaSemanaStreamProvider))),
     );
   }
 }
@@ -146,8 +148,8 @@ class _HoraPicoSection extends ConsumerWidget {
           ],
         );
       },
-      loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
-      error: (e, _) => SizedBox(height: 200, child: Center(child: Text('Error: $e'))),
+      loading: () => const SizedBox(height: 200, child: ShimmerCard(height: 200)),
+      error: (e, _) => SizedBox(height: 200, child: ErrorBanner(message: 'Error: $e', onRetry: () => ref.invalidate(kpiHoraPicoStreamProvider))),
     );
   }
 }
@@ -168,8 +170,8 @@ class _CategoriaSection extends ConsumerWidget {
           ],
         );
       },
-      loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
-      error: (e, _) => SizedBox(height: 200, child: Center(child: Text('Error: $e'))),
+      loading: () => const SizedBox(height: 200, child: ShimmerCard(height: 200)),
+      error: (e, _) => SizedBox(height: 200, child: ErrorBanner(message: 'Error: $e', onRetry: () => ref.invalidate(kpiPorCategoriaStreamProvider))),
     );
   }
 }
@@ -200,8 +202,8 @@ class _MargenSection extends ConsumerWidget {
           ],
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      loading: () => const ShimmerCard(height: 200),
+      error: (e, _) => ErrorBanner(message: 'Error: $e', onRetry: () => ref.invalidate(kpiMargenProductoStreamProvider)),
     );
   }
 }
@@ -382,7 +384,8 @@ class _CategoriaPieChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = [Colors.blue, Colors.green, Colors.orange, Colors.purple, Colors.red, Colors.teal];
+    final theme = Theme.of(context);
+    final colors = [theme.colorScheme.primary, theme.colorScheme.tertiary, theme.colorScheme.secondary, theme.colorScheme.primaryContainer, theme.colorScheme.tertiaryContainer, theme.colorScheme.secondaryContainer];
     final sections = data.asMap().entries.map((e) => PieChartSectionData(
       value: e.value.ingresos,
       title: e.value.categoria.toString().length > 10 ? '${e.value.categoria.toString().substring(0, 10)}...' : e.value.categoria.toString(),

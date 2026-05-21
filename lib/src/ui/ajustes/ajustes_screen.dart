@@ -7,10 +7,12 @@ import '../../navigation/routes.dart';
 import '../../notifiers/ajustes_notifier.dart';
 import '../../providers/database_provider.dart';
 import '../../theme/constants.dart';
+import '../../theme/formatters.dart';
 import '../../theme/spacing.dart';
 import '../shared/dialogs/product_picker_dialog.dart';
 import '../shared/widgets/empty_state.dart';
 import '../shared/widgets/error_banner.dart';
+import '../shared/widgets/shimmer_loading.dart';
 
 class AjustesScreen extends ConsumerStatefulWidget {
   const AjustesScreen({super.key});
@@ -67,20 +69,20 @@ class _AjustesScreenState extends ConsumerState<AjustesScreen> {
                                   Producto(id: 0, nombre: 'Desconocido', descripcion: null, categoriaId: 0, precioVenta: 0, margenGananciaPct: 0, stockMinimo: 0, stockActual: 0, activo: 1, creadoEn: '', actualizadoEn: '');
 
                               return ListTile(
-                                leading: Icon(ajuste.tipo == 'entrada' ? Icons.add_circle : Icons.remove_circle, color: ajuste.tipo == 'entrada' ? Colors.green : Colors.red),
+                                leading: Icon(ajuste.tipo == 'entrada' ? Icons.add_circle : Icons.remove_circle, color: ajuste.tipo == 'entrada' ? Theme.of(context).colorScheme.tertiary : Theme.of(context).colorScheme.error),
                                 title: Text(producto.nombre),
-                                subtitle: Text('${ajuste.motivo} · ${_formatFecha(ajuste.fecha)}'),
-                                trailing: Text('${ajuste.tipo == 'entrada' ? '+' : '-'}${ajuste.cantidad}', style: TextStyle(color: ajuste.tipo == 'entrada' ? Colors.green : Colors.red, fontWeight: FontWeight.w700)),
+                                subtitle: Text('${ajuste.motivo} · ${AppFormatters.formatDateTimeShort(ajuste.fecha)}'),
+                                trailing: Text('${ajuste.tipo == 'entrada' ? '+' : '-'}${ajuste.cantidad}', style: TextStyle(color: ajuste.tipo == 'entrada' ? Theme.of(context).colorScheme.tertiary : Theme.of(context).colorScheme.error, fontWeight: FontWeight.w700)),
                               );
                             },
                           );
                         },
-                        loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (e, _) => Center(child: Text('Error: $e')),
+                        loading: () => const ShimmerList(),
+                        error: (e, _) => ErrorBanner(message: 'Error: $e', onRetry: () => ref.invalidate(productosStreamProvider)),
                       );
                     },
-                    loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Center(child: Text('Error: $e')),
+                    loading: () => const ShimmerList(),
+                    error: (e, _) => ErrorBanner(message: 'Error: $e', onRetry: () => ref.invalidate(ajustesStreamProvider)),
                   ),
                 ),
               ],
@@ -91,11 +93,6 @@ class _AjustesScreenState extends ConsumerState<AjustesScreen> {
     );
   }
 
-  static String _formatFecha(String fecha) {
-    if (fecha.length >= 16) return fecha.substring(0, 16);
-    return fecha;
-  }
-
   Widget _buildSection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -103,7 +100,7 @@ class _AjustesScreenState extends ConsumerState<AjustesScreen> {
         children: [
           _ConfigCard(
             icon: Icons.inventory_2,
-            iconColor: Colors.blue,
+            iconColor: Theme.of(context).colorScheme.primary,
             title: 'Ajustes de Inventario',
             subtitle: 'Registrar entradas o salidas de stock',
             onTap: () => setState(() => _ajusteExpanded = !_ajusteExpanded),
@@ -113,7 +110,7 @@ class _AjustesScreenState extends ConsumerState<AjustesScreen> {
           const SizedBox(height: AppSpacing.sm),
           _ConfigCard(
             icon: Icons.category,
-            iconColor: Colors.green,
+            iconColor: Theme.of(context).colorScheme.tertiary,
             title: 'Categorías',
             subtitle: 'Organizar productos por categoría',
             onTap: () => context.push(AppRoutes.categorias),
@@ -121,7 +118,7 @@ class _AjustesScreenState extends ConsumerState<AjustesScreen> {
           const SizedBox(height: AppSpacing.sm),
           _ConfigCard(
             icon: Icons.local_shipping,
-            iconColor: Colors.orange,
+            iconColor: Theme.of(context).colorScheme.secondary,
             title: 'Proveedores',
             subtitle: 'Gestionar proveedores de compra',
             onTap: () => context.push(AppRoutes.proveedores),

@@ -7,6 +7,7 @@ import '../../theme/spacing.dart';
 import '../shared/dialogs/confirm_dialog.dart';
 import '../shared/widgets/empty_state.dart';
 import '../shared/widgets/error_banner.dart';
+import '../shared/widgets/shimmer_loading.dart';
 
 class ProveedoresScreen extends ConsumerWidget {
   const ProveedoresScreen({super.key});
@@ -49,21 +50,13 @@ class ProveedoresScreen extends ConsumerWidget {
                         : Theme.of(context).colorScheme.outline),
                   ),
                   title: Text(prov.nombre),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (prov.contacto != null && prov.contacto!.isNotEmpty)
-                        Text('Contacto: ${prov.contacto}'),
-                      if (prov.telefono != null && prov.telefono!.isNotEmpty)
-                        Text('Tel: ${prov.telefono}'),
-                    ].isEmpty ? [const Text('Sin datos de contacto')] : [],
-                  ),
+                  subtitle: _buildSubtitle(prov),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (prov.activo == 0)
                         IconButton(
-                          icon: const Icon(Icons.restore, color: Colors.green),
+                          icon: Icon(Icons.restore, color: Theme.of(context).colorScheme.tertiary),
                           onPressed: () => repo.toggleActive(prov.id, true),
                         ),
                       PopupMenuButton<String>(
@@ -101,8 +94,8 @@ class ProveedoresScreen extends ConsumerWidget {
             },
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        loading: () => const ShimmerList(),
+        error: (e, _) => ErrorBanner(message: 'Error: $e', onRetry: () => ref.invalidate(proveedoresStreamProvider)),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showForm(context, ref),
@@ -111,18 +104,36 @@ class ProveedoresScreen extends ConsumerWidget {
     );
   }
 
+  static Widget _buildSubtitle(Proveedore prov) {
+    final parts = <Widget>[];
+    if (prov.contacto != null && prov.contacto!.isNotEmpty) {
+      parts.add(Text('Contacto: ${prov.contacto}'));
+    }
+    if (prov.telefono != null && prov.telefono!.isNotEmpty) {
+      parts.add(Text('Tel: ${prov.telefono}'));
+    }
+    if (parts.isEmpty) {
+      parts.add(const Text('Sin datos de contacto'));
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: parts,
+    );
+  }
+
   void _showForm(BuildContext context, WidgetRef ref, {Proveedore? proveedor}) {
     showDialog(
       context: context,
-      builder: (dialogContext) => _ProveedorFormDialog(proveedor: proveedor),
+      builder: (dialogContext) => _ProveedorFormDialog(proveedor: proveedor, ref: ref),
     );
   }
 }
 
 class _ProveedorFormDialog extends StatefulWidget {
   final Proveedore? proveedor;
+  final WidgetRef ref;
 
-  const _ProveedorFormDialog({this.proveedor});
+  const _ProveedorFormDialog({this.proveedor, required this.ref});
 
   @override
   State<_ProveedorFormDialog> createState() => _ProveedorFormDialogState();
@@ -207,7 +218,7 @@ class _ProveedorFormDialogState extends State<_ProveedorFormDialog> {
         FilledButton(
           onPressed: () async {
             if (!_formKey.currentState!.validate()) return;
-            final repo = ProviderScope.containerOf(context, listen: false).read(proveedoresRepositoryProvider);
+            final repo = widget.ref.read(proveedoresRepositoryProvider);
             final result = isEdit
                 ? await repo.update(
                     id: widget.proveedor!.id,

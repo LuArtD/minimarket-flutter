@@ -645,6 +645,26 @@ final topMasVendidosStreamProvider =
 // ignore: unused_element
 typedef TopMasVendidosStreamRef =
     AutoDisposeStreamProviderRef<List<TopVendido>>;
+String _$dashboardAyerStreamHash() =>
+    r'c5a5903c659ca0218a3ca53e42cbcc1cf0383a08';
+
+/// See also [dashboardAyerStream].
+@ProviderFor(dashboardAyerStream)
+final dashboardAyerStreamProvider =
+    AutoDisposeStreamProvider<List<DashboardEntry>>.internal(
+      dashboardAyerStream,
+      name: r'dashboardAyerStreamProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$dashboardAyerStreamHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DashboardAyerStreamRef =
+    AutoDisposeStreamProviderRef<List<DashboardEntry>>;
 String _$stockUpdateCounterHash() =>
     r'4f9c9d22fd66c046584103151265e095f6f01ed8';
 

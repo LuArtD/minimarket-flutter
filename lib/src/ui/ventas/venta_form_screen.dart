@@ -64,49 +64,10 @@ class VentaFormScreen extends ConsumerWidget {
                 itemCount: state.productos.length,
                 itemBuilder: (context, index) {
                   final item = state.productos[index];
-                  final cantidadCtrl = TextEditingController(text: _formatCantidad(item.cantidad));
-                  return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
-                    child: ListTile(
-                      leading: CircleAvatar(child: Text(item.nombre[0].toUpperCase())),
-                      title: Text(item.nombre),
-                      subtitle: Text(
-                        'Stock: ${_formatCantidad(item.stockDisponible)} · ${AppFormatters.formatCurrency(item.precioVenta)} c/u',
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.remove_circle_outline),
-                            onPressed: item.cantidad <= 1
-                                ? () => notifier.removeProducto(item.productoId)
-                                : () => notifier.updateCantidad(item.productoId, item.cantidad - 1),
-                          ),
-                          SizedBox(
-                            width: 50,
-                            child: TextField(
-                              textAlign: TextAlign.center,
-                              keyboardType: TextInputType.number,
-                              controller: cantidadCtrl,
-                              onSubmitted: (v) {
-                                final val = double.tryParse(v);
-                                if (val != null) notifier.updateCantidad(item.productoId, val);
-                              },
-                              decoration: const InputDecoration(
-                                isDense: true,
-                                contentPadding: EdgeInsets.symmetric(vertical: 8),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.add_circle_outline),
-                            onPressed: item.cantidad < item.stockDisponible
-                                ? () => notifier.updateCantidad(item.productoId, item.cantidad + 1)
-                                : null,
-                          ),
-                        ],
-                      ),
-                    ),
+                  return _VentaItemCard(
+                    item: item,
+                    formatCantidad: _formatCantidad,
+                    notifier: notifier,
                   );
                 },
               ),
@@ -169,6 +130,94 @@ class VentaFormScreen extends ConsumerWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _VentaItemCard extends StatefulWidget {
+  final VentaProductoItem item;
+  final String Function(double) formatCantidad;
+  final VentaFormNotifier notifier;
+
+  const _VentaItemCard({
+    required this.item,
+    required this.formatCantidad,
+    required this.notifier,
+  });
+
+  @override
+  State<_VentaItemCard> createState() => _VentaItemCardState();
+}
+
+class _VentaItemCardState extends State<_VentaItemCard> {
+  late TextEditingController _cantidadCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _cantidadCtrl = TextEditingController(text: widget.formatCantidad(widget.item.cantidad));
+  }
+
+  @override
+  void didUpdateWidget(_VentaItemCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.item.cantidad != oldWidget.item.cantidad) {
+      _cantidadCtrl.text = widget.formatCantidad(widget.item.cantidad);
+    }
+  }
+
+  @override
+  void dispose() {
+    _cantidadCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final item = widget.item;
+    final notifier = widget.notifier;
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
+      child: ListTile(
+        leading: CircleAvatar(child: Text(item.nombre[0].toUpperCase())),
+        title: Text(item.nombre),
+        subtitle: Text(
+          'Stock: ${widget.formatCantidad(item.stockDisponible)} · ${AppFormatters.formatCurrency(item.precioVenta)} c/u',
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.remove_circle_outline),
+              onPressed: item.cantidad <= 1
+                  ? () => notifier.removeProducto(item.productoId)
+                  : () => notifier.updateCantidad(item.productoId, item.cantidad - 1),
+            ),
+            SizedBox(
+              width: 50,
+              child: TextField(
+                textAlign: TextAlign.center,
+                keyboardType: TextInputType.number,
+                controller: _cantidadCtrl,
+                onSubmitted: (v) {
+                  final val = double.tryParse(v);
+                  if (val != null) notifier.updateCantidad(item.productoId, val);
+                },
+                decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(vertical: 8),
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              onPressed: item.cantidad < item.stockDisponible
+                  ? () => notifier.updateCantidad(item.productoId, item.cantidad + 1)
+                  : null,
+            ),
+          ],
+        ),
       ),
     );
   }

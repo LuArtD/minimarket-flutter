@@ -44,6 +44,18 @@ class AppFormatters {
     return '${value.toStringAsFixed(1)}%';
   }
 
+  static String formatDateShort(String dateStr) {
+    if (dateStr.length < 10) return dateStr;
+    final dt = DateTime.tryParse('${dateStr}Z');
+    if (dt == null) return dateStr.substring(0, 10);
+    return formatDate(dt.toLocal());
+  }
+
+  static String formatDateTimeShort(String dateStr) {
+    if (dateStr.length < 16) return dateStr;
+    return dateStr.substring(0, 16);
+  }
+
   static String formatNumber(double value) {
     if (value == value.truncateToDouble()) {
       return value.toInt().toString();

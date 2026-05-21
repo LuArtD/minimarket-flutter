@@ -916,6 +916,35 @@ class ViewsDao extends DatabaseAccessor<AppDatabase> with _$ViewsDaoMixin {
     });
   }
 
+  Stream<List<DashboardEntry>> watchDashboardAyer() {
+    return customSelect('''
+      SELECT 'Ventas ayer' AS kpi, CAST(COUNT(*) AS TEXT) AS valor
+      FROM ventas WHERE DATE(fecha) = DATE('now','localtime','-1 day')
+      UNION ALL
+      SELECT 'Ingresos ayer', CAST(ROUND(COALESCE(SUM(total),0),2) AS TEXT)
+      FROM ventas WHERE DATE(fecha) = DATE('now','localtime','-1 day')
+      UNION ALL
+      SELECT 'Ganancia ayer', CAST(ROUND(COALESCE(SUM(total-costo_total),0),2) AS TEXT)
+      FROM ventas WHERE DATE(fecha) = DATE('now','localtime','-1 day')
+      UNION ALL
+      SELECT 'Ventas mes ant', CAST(COUNT(*) AS TEXT)
+      FROM ventas WHERE strftime('%Y-%m',fecha) = strftime('%Y-%m','now','localtime','-1 month')
+      UNION ALL
+      SELECT 'Ingresos mes ant', CAST(ROUND(COALESCE(SUM(total),0),2) AS TEXT)
+      FROM ventas WHERE strftime('%Y-%m',fecha) = strftime('%Y-%m','now','localtime','-1 month')
+      UNION ALL
+      SELECT 'Ganancia mes ant', CAST(ROUND(COALESCE(SUM(total-costo_total),0),2) AS TEXT)
+      FROM ventas WHERE strftime('%Y-%m',fecha) = strftime('%Y-%m','now','localtime','-1 month')
+    ''', readsFrom: {ventas}).watch().map((rows) {
+      return rows.map((row) {
+        return DashboardEntry(
+          kpi: row.read<String?>('kpi') ?? 'Desconocido',
+          valor: row.read<String?>('valor') ?? '0',
+        );
+      }).toList();
+    });
+  }
+
   Stream<List<KpiDiaSemana>> watchKpiDiaSemana() {
     return customSelect('SELECT * FROM v_kpi_dia_semana', readsFrom: {ventas}).watch().map((rows) {
       return rows.map((row) {

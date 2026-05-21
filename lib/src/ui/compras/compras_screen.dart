@@ -8,6 +8,8 @@ import '../../providers/database_provider.dart';
 import '../../theme/formatters.dart';
 import '../../theme/spacing.dart';
 import '../shared/widgets/empty_state.dart';
+import '../shared/widgets/error_banner.dart';
+import '../shared/widgets/shimmer_loading.dart';
 
 class ComprasScreen extends ConsumerWidget {
   const ComprasScreen({super.key});
@@ -52,25 +54,21 @@ class ComprasScreen extends ConsumerWidget {
                       onTap: () => context.push('/compras/${compra.id}'),
                       leading: CircleAvatar(backgroundColor: Theme.of(context).colorScheme.secondaryContainer, child: Icon(Icons.local_shipping, color: Theme.of(context).colorScheme.onSecondaryContainer)),
                       title: Text(AppFormatters.formatCurrency(compra.total)),
-                      subtitle: Text('${proveedor.nombre} · ${_formatFecha(compra.fecha)}'),
+                      subtitle: Text('${proveedor.nombre} · ${AppFormatters.formatDateTimeShort(compra.fecha)}'),
                       trailing: compra.nroFactura != null ? Text('Fact: ${compra.nroFactura}', style: Theme.of(context).textTheme.labelSmall) : null,
                     ),
                   );
                 },
               );
             },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Error: $e')),
+            loading: () => const ShimmerList(),
+            error: (e, _) => ErrorBanner(message: 'Error: $e', onRetry: () => ref.invalidate(proveedoresStreamProvider)),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        loading: () => const ShimmerList(),
+        error: (e, _) => ErrorBanner(message: 'Error: $e', onRetry: () => ref.invalidate(comprasStreamProvider)),
       ),
     );
   }
 
-  static String _formatFecha(String fecha) {
-    if (fecha.length >= 16) return fecha.substring(0, 16);
-    return fecha;
-  }
 }

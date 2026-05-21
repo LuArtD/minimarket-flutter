@@ -6,6 +6,7 @@ part 'dashboard_notifier.g.dart';
 
 class DashboardState {
   final Map<String, String> kpis;
+  final Map<String, String> kpisAyer;
   final List<StockAlerta> alertasStock;
   final List<KpiDiario> kpiDiario;
   final List<KpiMetodoPago> metodoPago;
@@ -14,6 +15,7 @@ class DashboardState {
 
   const DashboardState({
     this.kpis = const {},
+    this.kpisAyer = const {},
     this.alertasStock = const [],
     this.kpiDiario = const [],
     this.metodoPago = const [],
@@ -23,6 +25,7 @@ class DashboardState {
 
   DashboardState copyWith({
     Map<String, String>? kpis,
+    Map<String, String>? kpisAyer,
     List<StockAlerta>? alertasStock,
     List<KpiDiario>? kpiDiario,
     List<KpiMetodoPago>? metodoPago,
@@ -31,6 +34,7 @@ class DashboardState {
   }) {
     return DashboardState(
       kpis: kpis ?? this.kpis,
+      kpisAyer: kpisAyer ?? this.kpisAyer,
       alertasStock: alertasStock ?? this.alertasStock,
       kpiDiario: kpiDiario ?? this.kpiDiario,
       metodoPago: metodoPago ?? this.metodoPago,
@@ -49,6 +53,10 @@ class DashboardNotifier extends _$DashboardNotifier {
 
   void updateKpis(Map<String, String> kpis) {
     state = state.copyWith(kpis: kpis);
+  }
+
+  void updateKpisAyer(Map<String, String> kpisAyer) {
+    state = state.copyWith(kpisAyer: kpisAyer);
   }
 
   void updateAlertas(List<StockAlerta> alertas) {

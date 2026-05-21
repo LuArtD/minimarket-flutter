@@ -97,6 +97,10 @@ class DashboardRepository {
     return _viewsDao.watchProductosSinVentas();
   }
 
+  Stream<List<DashboardEntry>> watchDashboardAyer() {
+    return _viewsDao.watchDashboardAyer();
+  }
+
   Stream<List<KpiDiaSemana>> watchKpiDiaSemana() {
     return _viewsDao.watchKpiDiaSemana();
   }

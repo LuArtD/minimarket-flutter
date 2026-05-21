@@ -8,6 +8,9 @@ import '../../theme/constants.dart';
 import '../../theme/formatters.dart';
 import '../../theme/spacing.dart';
 import '../shared/widgets/currency_text.dart';
+import '../shared/widgets/empty_state.dart';
+import '../shared/widgets/error_banner.dart';
+import '../shared/widgets/shimmer_loading.dart';
 import '../shared/widgets/stock_badge.dart';
 
 class ProductoDetalleScreen extends ConsumerStatefulWidget {
@@ -32,10 +35,10 @@ class _ProductoDetalleScreenState extends ConsumerState<ProductoDetalleScreen> {
         builder: (context, snapshot) {
           final producto = snapshot.data;
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Padding(padding: EdgeInsets.all(16), child: ShimmerCard(height: 400));
           }
           if (producto == null) {
-            return const Center(child: Text('Producto no encontrado'));
+            return const EmptyState(icon: Icons.inventory_2_outlined, title: 'Producto no encontrado');
           }
 
           final categoriaAsync = ref.watch(categoriasStreamProvider);
@@ -46,8 +49,8 @@ class _ProductoDetalleScreenState extends ConsumerState<ProductoDetalleScreen> {
               final categoria = categorias.where((c) => c.id == producto.categoriaId).firstOrNull;
               return _buildContent(theme, producto, categoria, stockOk);
             },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Error: $e')),
+            loading: () => const ShimmerCard(height: 300),
+            error: (e, _) => ErrorBanner(message: 'Error: $e', onRetry: () => ref.invalidate(categoriasStreamProvider)),
           );
         },
       ),
@@ -124,11 +127,11 @@ class _HeaderSection extends StatelessWidget {
                       StockBadge(stockOk ? AppConstants.stockStatusOk : AppConstants.stockStatusReponer),
                       const SizedBox(width: AppSpacing.sm),
                       Icon(producto.activo == 1 ? Icons.check_circle_outline : Icons.cancel_outlined,
-                          size: 14, color: producto.activo == 1 ? Colors.green : Colors.red),
+                          size: 14, color: producto.activo == 1 ? theme.colorScheme.tertiary : theme.colorScheme.error),
                       const SizedBox(width: 4),
                       Text(producto.activo == 1 ? 'Activo' : 'Inactivo',
                           style: theme.textTheme.labelSmall?.copyWith(
-                              color: producto.activo == 1 ? Colors.green : Colors.red)),
+                              color: producto.activo == 1 ? theme.colorScheme.tertiary : theme.colorScheme.error)),
                     ],
                   ),
                 ],
@@ -209,13 +212,13 @@ class _LotesSection extends ConsumerWidget {
               stream: lotesAsync,
               builder: (context, snapshot) {
                 final lotes = snapshot.data ?? [];
-                if (lotes.isEmpty) return const Padding(padding: EdgeInsets.all(8), child: Text('Sin lotes disponibles'));
+                if (lotes.isEmpty) return const Padding(padding: EdgeInsets.all(8), child: EmptyState(icon: Icons.inventory_outlined, title: 'Sin lotes disponibles'));
 
                 return ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: lotes.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final lote = lotes[index];
                     final pctVendido = lote.cantidadOriginal > 0
@@ -238,7 +241,7 @@ class _LotesSection extends ConsumerWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(_fechaCorta(lote.fechaCompra), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                              Text(AppFormatters.formatDateShort(lote.fechaCompra), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                               Text('$pctVendido% vendido', style: theme.textTheme.labelSmall),
                             ],
                           ),
@@ -263,12 +266,6 @@ class _LotesSection extends ConsumerWidget {
     );
   }
 
-  String _fechaCorta(String fecha) {
-    if (fecha.length < 10) return fecha;
-    final dt = DateTime.tryParse('${fecha}Z');
-    if (dt == null) return fecha.substring(0, 10);
-    return AppFormatters.formatDate(dt.toLocal());
-  }
 }
 
 class _HistorialMargenesSection extends ConsumerWidget {
@@ -293,13 +290,13 @@ class _HistorialMargenesSection extends ConsumerWidget {
               stream: historialStream,
               builder: (context, snapshot) {
                 final items = snapshot.data ?? [];
-                if (items.isEmpty) return const Padding(padding: EdgeInsets.all(8), child: Text('Sin cambios registrados'));
+                if (items.isEmpty) return const Padding(padding: EdgeInsets.all(8), child: EmptyState(icon: Icons.trending_up_outlined, title: 'Sin cambios registrados'));
 
                 return ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: items.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final h = items[index];
                     return Padding(
@@ -321,7 +318,7 @@ class _HistorialMargenesSection extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(h.motivo, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                              Text(_fechaCorta(h.fecha), style: theme.textTheme.labelSmall),
+                              Text(AppFormatters.formatDateShort(h.fecha), style: theme.textTheme.labelSmall),
                             ],
                           ),
                         ],
@@ -337,12 +334,6 @@ class _HistorialMargenesSection extends ConsumerWidget {
     );
   }
 
-  String _fechaCorta(String fecha) {
-    if (fecha.length < 10) return fecha;
-    final dt = DateTime.tryParse('${fecha}Z');
-    if (dt == null) return fecha.substring(0, 10);
-    return AppFormatters.formatDate(dt.toLocal());
-  }
 }
 
 class _AjustesSection extends ConsumerWidget {
@@ -367,13 +358,13 @@ class _AjustesSection extends ConsumerWidget {
               stream: ajustesStream,
               builder: (context, snapshot) {
                 final items = snapshot.data ?? [];
-                if (items.isEmpty) return const Padding(padding: EdgeInsets.all(8), child: Text('Sin ajustes registrados'));
+                if (items.isEmpty) return const Padding(padding: EdgeInsets.all(8), child: EmptyState(icon: Icons.tune_outlined, title: 'Sin ajustes registrados'));
 
                 return ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: items.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final a = items[index];
                     final isEntrada = a.tipo == 'entrada';
@@ -384,7 +375,7 @@ class _AjustesSection extends ConsumerWidget {
                           Icon(
                             isEntrada ? Icons.add_circle_outline : Icons.remove_circle_outline,
                             size: 20,
-                            color: isEntrada ? Colors.green : Colors.red,
+                            color: isEntrada ? theme.colorScheme.tertiary : theme.colorScheme.error,
                           ),
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
@@ -402,7 +393,7 @@ class _AjustesSection extends ConsumerWidget {
                             children: [
                               Text('${AppFormatters.formatNumber(a.stockAntes)} → ${AppFormatters.formatNumber(a.stockDespues)}',
                                   style: theme.textTheme.labelSmall),
-                              Text(_fechaCorta(a.fecha), style: theme.textTheme.labelSmall),
+                              Text(AppFormatters.formatDateShort(a.fecha), style: theme.textTheme.labelSmall),
                             ],
                           ),
                         ],
@@ -418,10 +409,4 @@ class _AjustesSection extends ConsumerWidget {
     );
   }
 
-  String _fechaCorta(String fecha) {
-    if (fecha.length < 10) return fecha;
-    final dt = DateTime.tryParse('${fecha}Z');
-    if (dt == null) return fecha.substring(0, 10);
-    return AppFormatters.formatDate(dt.toLocal());
-  }
 }

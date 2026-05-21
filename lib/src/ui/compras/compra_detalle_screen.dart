@@ -8,6 +8,8 @@ import '../../theme/formatters.dart';
 import '../../theme/spacing.dart';
 import '../shared/widgets/currency_text.dart';
 import '../shared/widgets/empty_state.dart';
+import '../shared/widgets/error_banner.dart';
+import '../shared/widgets/shimmer_loading.dart';
 
 class CompraDetalleScreen extends ConsumerWidget {
   final int compraId;
@@ -28,10 +30,10 @@ class CompraDetalleScreen extends ConsumerWidget {
         builder: (context, snapshot) {
           final compra = snapshot.data;
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Padding(padding: EdgeInsets.all(16), child: ShimmerCard(height: 400));
           }
           if (compra == null) {
-            return const Center(child: Text('Compra no encontrada'));
+            return const EmptyState(icon: Icons.shopping_cart_outlined, title: 'Compra no encontrada');
           }
 
           return StreamBuilder<List<CompraDetalleView>>(
@@ -55,8 +57,8 @@ class CompraDetalleScreen extends ConsumerWidget {
                     ),
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
+                loading: () => const ShimmerCard(height: 200),
+                error: (e, _) => ErrorBanner(message: 'Error: $e', onRetry: () => ref.invalidate(proveedoresStreamProvider)),
               );
             },
           );

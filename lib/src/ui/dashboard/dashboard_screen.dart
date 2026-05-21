@@ -10,17 +10,26 @@ import '../../providers/database_provider.dart';
 import '../../repositories/dashboard_repository.dart';
 import '../../theme/constants.dart';
 import '../../theme/spacing.dart';
-import '../shared/widgets/kpi_card.dart';
 import '../shared/widgets/stock_badge.dart';
+import 'widgets/kpi_card_compound.dart';
+import 'widgets/kpi_card_metric.dart';
+import 'widgets/kpi_card_premium.dart';
+import 'widgets/section_header.dart';
+import '../shared/widgets/shimmer_loading.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(dashboardNotifierProvider);
-    final notifier = ref.read(dashboardNotifierProvider.notifier);
     final repo = ref.watch(dashboardRepositoryProvider);
+    final notifier = ref.read(dashboardNotifierProvider.notifier);
+
+    ref.listen(dashboardAyerStreamProvider, (_, data) {
+      data.whenData((entries) {
+        notifier.updateKpisAyer({for (final e in entries) e.kpi: e.valor});
+      });
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -40,30 +49,10 @@ class DashboardScreen extends ConsumerWidget {
         onRefresh: () async => ref.invalidate(dashboardNotifierProvider),
         child: CustomScrollView(
           slivers: [
-            StreamBuilder<List<DashboardEntry>>(
-              stream: repo.watchDashboard(),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  final kpis = {for (final e in snapshot.data!) e.kpi: e.valor};
-                  WidgetsBinding.instance.addPostFrameCallback((_) => notifier.updateKpis(kpis));
-                }
-                return SliverPadding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  sliver: SliverGrid.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: AppSpacing.sm,
-                      crossAxisSpacing: AppSpacing.sm,
-                    ),
-                    itemCount: 8,
-                    itemBuilder: (context, index) => _buildKpiCard(context, state.kpis, index),
-                  ),
-                );
-              },
-            ),
-            _EvolucionSection(),
-            _MetodoPagoSection(),
-            _TopVendidosSection(),
+            _KpiCardsSliver(repo: repo, notifier: notifier),
+            const _EvolucionSection(),
+            const _TopVendidosSection(),
+            const _MetodoPagoSection(),
             _StockAlertasSection(repo: repo),
             const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
           ],
@@ -71,26 +60,222 @@ class DashboardScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _buildKpiCard(BuildContext context, Map<String, String> kpis, int index) {
-    final entries = [
-      (AppConstants.kpiVentasHoy, Icons.receipt_long, null),
-      (AppConstants.kpiIngresosHoy, Icons.attach_money, Colors.green),
-      (AppConstants.kpiGananciaHoy, Icons.trending_up, Colors.blue),
-      (AppConstants.kpiIngresosMes, Icons.calendar_month, null),
-      (AppConstants.kpiGananciaMes, Icons.savings, Colors.blue),
-      (AppConstants.kpiReponer, Icons.warning_amber, Colors.orange),
-      (AppConstants.kpiValorCosto, Icons.inventory, null),
-      (AppConstants.kpiValorVenta, Icons.store, null),
-    ];
+class _KpiCardsSliver extends ConsumerWidget {
+  final DashboardRepository repo;
+  final DashboardNotifier notifier;
 
-    if (index >= entries.length) return const SizedBox.shrink();
+  const _KpiCardsSliver({required this.repo, required this.notifier});
 
-    final (label, icon, color) = entries[index];
-    final value = kpis[label] ?? '0';
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(dashboardNotifierProvider);
+    final kpiDiarioAsync = ref.watch(kpiDiarioStreamProvider);
 
-    return KpiCard(label: label, value: value, icon: icon, iconColor: color);
+    return StreamBuilder<List<DashboardEntry>>(
+      stream: repo.watchDashboard(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          final kpis = {for (final e in snapshot.data!) e.kpi: e.valor};
+          WidgetsBinding.instance.addPostFrameCallback((_) => notifier.updateKpis(kpis));
+        }
+
+        final isEmpty = state.kpis.isEmpty;
+        if (isEmpty) {
+          return SliverToBoxAdapter(
+            child: Column(
+              children: [
+                const SizedBox(height: AppSpacing.sm),
+                ShimmerGrid(count: 2, height: 140),
+                const SizedBox(height: AppSpacing.sm),
+                ShimmerGrid(count: 2, height: 80),
+                const SizedBox(height: AppSpacing.sm),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  child: ShimmerCard(height: 100),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  child: ShimmerCard(height: 100),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final ingresosHoy = _kpiDouble(state.kpis, AppConstants.kpiIngresosHoy);
+        final gananciaHoy = _kpiDouble(state.kpis, AppConstants.kpiGananciaHoy);
+        final ventasHoy = _kpiDouble(state.kpis, AppConstants.kpiVentasHoy);
+        final reponer = _kpiDouble(state.kpis, AppConstants.kpiReponer);
+        final ingresosMes = _kpiDouble(state.kpis, AppConstants.kpiIngresosMes);
+        final gananciaMes = _kpiDouble(state.kpis, AppConstants.kpiGananciaMes);
+        final valorCosto = _kpiDouble(state.kpis, AppConstants.kpiValorCosto);
+        final valorVenta = _kpiDouble(state.kpis, AppConstants.kpiValorVenta);
+
+        final ingresosAyer = _kpiDouble(state.kpisAyer, 'Ingresos ayer');
+        final gananciaAyer = _kpiDouble(state.kpisAyer, 'Ganancia ayer');
+        final ventasAyer = _kpiDouble(state.kpisAyer, 'Ventas ayer');
+        final ingresosMesAnt = _kpiDouble(state.kpisAyer, 'Ingresos mes ant');
+        final gananciaMesAnt = _kpiDouble(state.kpisAyer, 'Ganancia mes ant');
+
+        final sparkIngresos = _sparklineData(kpiDiarioAsync, (d) => d.ingresos);
+        final sparkGanancia = _sparklineData(kpiDiarioAsync, (d) => d.gananciaBruta);
+
+        return SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SectionHeader(title: 'Hoy', icon: Icons.today),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: PremiumKpiCard(
+                        label: 'Ingresos',
+                        value: ingresosHoy,
+                        icon: Icons.attach_money,
+                        gradientStart: const Color(0xFF3B82F6),
+                        gradientEnd: const Color(0xFF1D4ED8),
+                        sparklineData: sparkIngresos,
+                        cambioPct: _calcCambio(ingresosHoy, ingresosAyer),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: PremiumKpiCard(
+                        label: 'Ganancia bruta',
+                        value: gananciaHoy,
+                        icon: Icons.trending_up,
+                        gradientStart: const Color(0xFF10B981),
+                        gradientEnd: const Color(0xFF047857),
+                        sparklineData: sparkGanancia,
+                        cambioPct: _calcCambio(gananciaHoy, gananciaAyer),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SectionHeader(title: 'Rápidas', icon: Icons.speed),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: MetricKpiCard(
+                        label: 'Ventas hoy',
+                        value: ventasHoy,
+                        icon: Icons.receipt_long,
+                        accentColor: const Color(0xFFF59E0B),
+                        trendLabel: _trendStr(ventasHoy, ventasAyer),
+                        trendUp: ventasHoy >= ventasAyer,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: MetricKpiCard(
+                        label: 'A reponer',
+                        value: reponer,
+                        icon: Icons.warning_amber,
+                        accentColor: const Color(0xFFEF4444),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SectionHeader(title: 'Este mes', icon: Icons.calendar_month),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                child: CompoundKpiCard(
+                  title: 'Resumen del mes',
+                  icon: Icons.calendar_month,
+                  accentColor: const Color(0xFF8B5CF6),
+                  primary: CompoundKpiItem(
+                    label: 'Ingresos',
+                    value: ingresosMes,
+                    subtitle: ingresosMesAnt > 0
+                        ? 'vs mes ant: ${_calcCambioStr(ingresosMes, ingresosMesAnt)}'
+                        : null,
+                    destacado: true,
+                  ),
+                  secondary: CompoundKpiItem(
+                    label: 'Ganancia',
+                    value: gananciaMes,
+                    subtitle: gananciaMesAnt > 0
+                        ? 'vs mes ant: ${_calcCambioStr(gananciaMes, gananciaMesAnt)}'
+                        : null,
+                    destacado: true,
+                  ),
+                  progressValue: ingresosMes > 0 && gananciaMes > 0
+                      ? (gananciaMes / ingresosMes * 100).clamp(0, 100)
+                      : null,
+                ),
+              ),
+              const SectionHeader(title: 'Inventario', icon: Icons.inventory),
+              Padding(
+                padding: const EdgeInsets.only(left: AppSpacing.lg, right: AppSpacing.lg, bottom: AppSpacing.md),
+                child: CompoundKpiCard(
+                  title: 'Valor inventario',
+                  icon: Icons.inventory,
+                  accentColor: const Color(0xFFF59E0B),
+                  primary: CompoundKpiItem(
+                    label: 'A costo',
+                    value: valorCosto,
+                  ),
+                  secondary: CompoundKpiItem(
+                    label: 'A venta',
+                    value: valorVenta,
+                    destacado: true,
+                    subtitle: valorCosto > 0
+                        ? '+${((valorVenta - valorCosto) / valorCosto * 100).toStringAsFixed(0)}% potencial'
+                        : null,
+                  ),
+                  progressValue: valorCosto > 0
+                      ? ((valorVenta - valorCosto) / valorVenta * 100).clamp(0, 100)
+                      : null,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
+}
+
+double _kpiDouble(Map<String, String> kpis, String key) {
+  return double.tryParse(kpis[key] ?? '0') ?? 0;
+}
+
+double? _calcCambio(double actual, double anterior) {
+  if (anterior <= 0) return null;
+  return ((actual - anterior) / anterior * 100);
+}
+
+String _trendStr(double actual, double anterior) {
+  if (anterior <= 0) return '';
+  final pct = ((actual - anterior) / anterior * 100);
+  final sign = pct >= 0 ? '+' : '';
+  return '$sign${pct.toStringAsFixed(1)}%';
+}
+
+String _calcCambioStr(double actual, double anterior) {
+  if (anterior <= 0) return 'N/A';
+  final pct = ((actual - anterior) / anterior * 100);
+  final sign = pct >= 0 ? '+' : '';
+  return '$sign${pct.toStringAsFixed(1)}%';
+}
+
+List<double> _sparklineData(
+  AsyncValue<List<KpiDiario>> asyncData,
+  double Function(KpiDiario) extract,
+) {
+  return asyncData.maybeWhen(
+    data: (data) => data.reversed.take(7).map(extract).toList(),
+    orElse: () => <double>[],
+  );
 }
 
 class _EvolucionSection extends ConsumerWidget {
@@ -140,7 +325,7 @@ class _MetodoPagoSection extends ConsumerWidget {
               children: [
                 Text('Ventas por método de pago', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: AppSpacing.md),
-                SizedBox(height: 200, child: _MetodoPagoPieChart(metodos: data)),
+                SizedBox(height: 260, child: _MetodoPagoPieChart(metodos: data)),
               ],
             ),
           ),
@@ -208,21 +393,43 @@ class _StockAlertasSection extends ConsumerWidget {
               children: [
                 Text('Productos a reponer (${alertas.length})', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: AppSpacing.sm),
-                ...alertas.map((a) => ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.errorContainer,
-                    child: Icon(Icons.warning, color: Theme.of(context).colorScheme.onErrorContainer, size: 20),
-                  ),
-                  title: Text(a.producto),
-                  subtitle: Text(a.categoria),
-                  trailing: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const StockBadge('REPONER'),
-                      Text('Stock: ${a.stockActual} / Mín: ${a.stockMinimo}', style: Theme.of(context).textTheme.labelSmall),
-                      Text('Faltante: ${a.faltante.toStringAsFixed(0)}', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.error)),
-                    ],
+                ...alertas.map((a) => Card(
+                  margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                            child: Icon(Icons.warning, color: Theme.of(context).colorScheme.onErrorContainer, size: 20),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(a.producto, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                const SizedBox(height: 2),
+                                Text(a.categoria, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              const StockBadge('REPONER'),
+                              Text('Stock: ${a.stockActual} / Mín: ${a.stockMinimo}', style: Theme.of(context).textTheme.labelSmall),
+                              Text('Faltante: ${a.faltante.toStringAsFixed(0)}', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.error)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 )),
               ],
@@ -230,10 +437,13 @@ class _StockAlertasSection extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const SliverToBoxAdapter(
+      loading: () => SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.all(AppSpacing.lg),
-          child: Center(child: CircularProgressIndicator()),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(children: List.generate(3, (_) => const Padding(
+            padding: EdgeInsets.only(bottom: AppSpacing.sm),
+            child: ShimmerCard(height: 72),
+          ))),
         ),
       ),
       error: (_, _) => const SliverToBoxAdapter(
@@ -286,14 +496,14 @@ class _EvolucionChart extends StatelessWidget {
         ),
         borderData: FlBorderData(show: false),
         lineBarsData: [
-          LineChartBarData(spots: ingresosSpots, isCurved: true, color: Colors.green, barWidth: 2, dotData: const FlDotData(show: false), belowBarData: BarAreaData(show: true, color: Colors.green.withValues(alpha: 0.1))),
-          LineChartBarData(spots: costosSpots, isCurved: true, color: Colors.red, barWidth: 2, dotData: const FlDotData(show: false)),
-          LineChartBarData(spots: gananciaSpots, isCurved: true, color: Colors.blue, barWidth: 2, dotData: const FlDotData(show: false), belowBarData: BarAreaData(show: true, color: Colors.blue.withValues(alpha: 0.1))),
+          LineChartBarData(spots: ingresosSpots, isCurved: true, color: theme.colorScheme.primary, barWidth: 2, dotData: const FlDotData(show: false), belowBarData: BarAreaData(show: true, color: theme.colorScheme.primary.withValues(alpha: 0.1))),
+          LineChartBarData(spots: costosSpots, isCurved: true, color: theme.colorScheme.error, barWidth: 2, dotData: const FlDotData(show: false)),
+          LineChartBarData(spots: gananciaSpots, isCurved: true, color: theme.colorScheme.tertiary, barWidth: 2, dotData: const FlDotData(show: false), belowBarData: BarAreaData(show: true, color: theme.colorScheme.tertiary.withValues(alpha: 0.1))),
         ],
         lineTouchData: LineTouchData(touchTooltipData: LineTouchTooltipData(getTooltipItems: (touchedSpots) {
           return touchedSpots.map((spot) {
             final label = switch (spot.barIndex) { 0 => 'Ingresos', 1 => 'Costos', _ => 'Ganancia' };
-            return LineTooltipItem('$label\n\$ ${spot.y.toStringAsFixed(2)}', TextStyle(color: spot.barIndex == 0 ? Colors.green : spot.barIndex == 1 ? Colors.red : Colors.blue));
+            return LineTooltipItem('$label\n\$ ${spot.y.toStringAsFixed(2)}', TextStyle(color: spot.barIndex == 0 ? theme.colorScheme.primary : spot.barIndex == 1 ? theme.colorScheme.error : theme.colorScheme.tertiary));
           }).toList();
         })),
       ),
@@ -308,7 +518,8 @@ class _MetodoPagoPieChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = [Colors.green, Colors.blue, Colors.orange];
+    final theme = Theme.of(context);
+    final colors = [theme.colorScheme.primary, theme.colorScheme.tertiary, theme.colorScheme.secondary];
     final sections = metodos.asMap().entries.map((e) {
       return PieChartSectionData(
         value: e.value.totalCobrado,
