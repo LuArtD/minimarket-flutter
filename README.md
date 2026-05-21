@@ -6,13 +6,11 @@ Aplicación de gestión de inventario y ventas para minimarket con método FIFO,
 
 <div align="center">
 
-| Pantalla | Vista |
+| | |
 |---|---|
-| Dashboard | <img src="docs/screenshots/dashboard.jpg" width="300"> |
-| Productos | <img src="docs/screenshots/productos.jpg" width="300"> |
-| Ventas | <img src="docs/screenshots/ventas.jpg" width="300"> |
-| Compras | <img src="docs/screenshots/compras.jpg" width="300"> |
-| Reportes | <img src="docs/screenshots/reportes.jpg" width="300"> |
+| <img src="docs/screenshots/dashboard.jpg" width="300"><br>*Dashboard* | <img src="docs/screenshots/productos.jpg" width="300"><br>*Productos* |
+| <img src="docs/screenshots/ventas.jpg" width="300"><br>*Ventas* | <img src="docs/screenshots/compras.jpg" width="300"><br>*Compras* |
+| <img src="docs/screenshots/reportes.jpg" width="300"><br>*Reportes* | |
 
 </div>
 
